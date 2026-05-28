@@ -1,0 +1,6 @@
+This file is a placeholder. Replace `images/icon.png` with a 128x128 PNG
+before publishing the extension to the Marketplace. The VS Code Marketplace
+requires an icon of at least 128x128 with a transparent background.
+
+The `package.json` already references `images/icon.png`, so dropping a
+real PNG at that path is the only step needed.

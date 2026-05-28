@@ -1,0 +1,104 @@
+{
+  "name": "leakferret",
+  "displayName": "leakferret",
+  "description": "Context-aware secret detection. Stops you (and your agent) from committing live keys. Uses your own LLM for classification — no extra API key.",
+  "version": "0.1.0",
+  "publisher": "leakferrethq",
+  "license": "MIT",
+  "icon": "images/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/leakferrethq/leakferret.git"
+  },
+  "bugs": {
+    "url": "https://github.com/leakferrethq/leakferret/issues"
+  },
+  "homepage": "https://github.com/leakferrethq/leakferret#readme",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Linters",
+    "Other"
+  ],
+  "keywords": [
+    "secrets",
+    "security",
+    "secret scanner",
+    "linter",
+    "env",
+    "aws",
+    "credentials"
+  ],
+  "activationEvents": [
+    "onLanguage:javascript",
+    "onLanguage:typescript",
+    "onLanguage:python",
+    "onLanguage:ruby",
+    "onLanguage:go",
+    "onLanguage:yaml",
+    "onLanguage:json",
+    "workspaceContains:.env*"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "leakferret.scan",
+        "title": "leakferret: Scan current file"
+      },
+      {
+        "command": "leakferret.verify",
+        "title": "leakferret: Verify findings against providers"
+      },
+      {
+        "command": "leakferret.rewrite",
+        "title": "leakferret: Rewrite literals to ENV.fetch"
+      }
+    ],
+    "configuration": {
+      "title": "leakferret",
+      "properties": {
+        "leakferret.binaryPath": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to the leakferret binary. Leave empty to use the bundled binary (preferred)."
+        },
+        "leakferret.scanOnSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically scan files on save."
+        },
+        "leakferret.classifierModel": {
+          "type": "string",
+          "default": "",
+          "description": "Preferred language-model family for classification (e.g. 'gpt-4o', 'claude-3.5-sonnet'). Empty means pick the first available."
+        },
+        "leakferret.verifyMode": {
+          "type": "string",
+          "default": "best-effort",
+          "enum": [
+            "off",
+            "best-effort",
+            "strict"
+          ],
+          "description": "Verifier mode passed to the binary when running leakferret.verify."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p .",
+    "watch": "tsc -watch -p .",
+    "package": "vsce package",
+    "publish": "vsce publish",
+    "postinstall": "node scripts/postinstall.js"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.90.0",
+    "typescript": "^5.4.0",
+    "vsce": "^2.15.0"
+  }
+}
