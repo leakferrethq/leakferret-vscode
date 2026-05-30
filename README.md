@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.png" alt="leakferret" width="380">
+</p>
+
 # leakferret for VS Code
 
 > MCP-native secret scanner — verified findings, agent-applied rewrites.
