@@ -93,11 +93,17 @@
     "watch": "tsc -watch -p .",
     "package": "vsce package",
     "publish": "vsce publish",
+    "pretest": "npm run compile",
+    "test": "vscode-test",
     "postinstall": "node scripts/postinstall.js"
   },
   "devDependencies": {
+    "@types/mocha": "^10.0.7",
     "@types/node": "^20.11.0",
     "@types/vscode": "^1.90.0",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.4.1",
+    "mocha": "^10.7.0",
     "typescript": "^5.4.0",
     "vsce": "^2.15.0"
   }

@@ -1,9 +1,9 @@
 name: smoke
 
-# Installs deps (postinstall downloads the release binary), compiles the
-# extension, and confirms the vendored binary runs. Full extension-host UI
-# tests are out of scope here. Only passes once leakferrethq/leakferret
-# v0.1.0 is public (the postinstall download).
+# Real VS Code Extension Host test: installs deps (postinstall downloads the
+# release binary into dist/bin), compiles, then activates the extension in a
+# headless VS Code and asserts it scans + surfaces a diagnostic. Only passes
+# once leakferrethq/leakferret v0.1.0 is public (the postinstall download).
 on:
   workflow_dispatch:
   # Uncomment after the release is published:
@@ -11,8 +11,8 @@ on:
   # pull_request:
 
 jobs:
-  build-and-resolve:
-    name: install + compile + run binary (${{ matrix.os }})
+  extension-host:
+    name: extension host (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -25,15 +25,12 @@ jobs:
           node-version: '20'
       - name: Install deps + run postinstall (downloads the release binary)
         run: npm install
-      - name: Compile the extension
-        run: npm run compile --if-present
-      - name: Verify the vendored binary detects a secret
+      - name: Run extension-host tests (Linux needs a virtual display)
         shell: bash
         run: |
-          mkdir -p app
-          printf "AWS_ACCESS_KEY = 'AKIAQ7W2E3R4T5Y6U7I8'\n" > app/config.rb
-          bin="dist/bin/leakferret"
-          [ "$RUNNER_OS" = "Windows" ] && bin="dist/bin/leakferret.exe"
-          out="$("$bin" scan . || true)"
-          echo "$out"
-          echo "$out" | grep -q 'aws_access_key' || { echo "::error::vendored binary did not detect the planted secret"; exit 1; }
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            sudo apt-get update && sudo apt-get install -y xvfb
+            xvfb-run -a npm test
+          else
+            npm test
+          fi
