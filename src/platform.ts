@@ -7,11 +7,10 @@
 export type Arch = 'x86_64' | 'aarch64';
 export type Triple =
   | 'x86_64-unknown-linux-gnu'
-  | 'aarch64-unknown-linux-gnu'
   | 'x86_64-apple-darwin'
   | 'aarch64-apple-darwin'
-  | 'x86_64-pc-windows-gnu'
-  | 'aarch64-pc-windows-gnu';
+  | 'x86_64-pc-windows-msvc'
+  | 'aarch64-pc-windows-msvc';
 
 export function detectPlatform(): Triple {
   const arch = process.arch;
@@ -27,13 +26,14 @@ export function detectPlatform(): Triple {
   }
 
   if (platform === 'linux') {
+    if (cpu === 'aarch64') throw new Error('aarch64-linux has no prebuilt binary yet; build from source');
     return `${cpu}-unknown-linux-gnu` as Triple;
   }
   if (platform === 'darwin') {
     return `${cpu}-apple-darwin` as Triple;
   }
   if (platform === 'win32') {
-    return `${cpu}-pc-windows-gnu` as Triple;
+    return `${cpu}-pc-windows-msvc` as Triple;
   }
   throw new Error(`unsupported platform: ${platform}`);
 }

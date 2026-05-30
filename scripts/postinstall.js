@@ -32,9 +32,12 @@ function detectPlatform() {
   } else {
     throw new Error(`unsupported CPU arch: ${arch}`);
   }
-  if (platform === 'linux') return `${cpu}-unknown-linux-gnu`;
+  if (platform === 'linux') {
+    if (cpu === 'aarch64') throw new Error('aarch64-linux has no prebuilt binary yet; build from source');
+    return `${cpu}-unknown-linux-gnu`;
+  }
   if (platform === 'darwin') return `${cpu}-apple-darwin`;
-  if (platform === 'win32') return `${cpu}-pc-windows-gnu`;
+  if (platform === 'win32') return `${cpu}-pc-windows-msvc`;
   throw new Error(`unsupported platform: ${platform}`);
 }
 
@@ -43,11 +46,12 @@ function binaryName() {
 }
 
 function tarballUrl(version, triple) {
-  const ext = process.platform === 'win32' ? 'zip' : 'tar.gz';
+  // Releases publish .tar.gz for every target (including Windows), and the
+  // filename has no leading `v` before the version (only the path segment does).
   const base =
     process.env.LEAKFERRET_RELEASE_BASE ||
     'https://github.com/leakferrethq/leakferret/releases/download';
-  return `${base}/v${version}/leakferret-v${version}-${triple}.${ext}`;
+  return `${base}/v${version}/leakferret-${version}-${triple}.tar.gz`;
 }
 
 function ensureDir(dir) {
@@ -106,7 +110,7 @@ function unpack(archivePath, destDir) {
     }
     return;
   }
-  const res = spawnSync('tar', ['-xzf', archivePath, '-C', destDir], {
+  const res = spawnSync('tar', ['-xzf', archivePath, '--strip-components=1', '-C', destDir], {
     stdio: 'inherit',
   });
   if (res.status !== 0) {
@@ -134,10 +138,7 @@ async function main() {
 
   const triple = detectPlatform();
   const url = tarballUrl(PACKAGE_JSON.version, triple);
-  const archive = path.join(
-    BIN_DIR,
-    `leakferret.${process.platform === 'win32' ? 'zip' : 'tar.gz'}`,
-  );
+  const archive = path.join(BIN_DIR, 'leakferret.tar.gz');
 
   console.log(`[leakferret] downloading ${url}`);
   try {
