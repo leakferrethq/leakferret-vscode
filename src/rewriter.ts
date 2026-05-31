@@ -25,7 +25,7 @@ export async function rewriteFile(
   filePath: string,
   options: RewriteOptions,
 ): Promise<RewriteResult> {
-  const bin = resolveBinary(extensionPath);
+  const bin = await resolveBinary(extensionPath);
   const args = [
     'rewrite',
     filePath,

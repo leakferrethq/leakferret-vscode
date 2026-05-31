@@ -241,7 +241,7 @@ async function runVerifyCommand(
   }
   const cfg = vscode.workspace.getConfiguration('leakferret');
   const mode = cfg.get<string>('verifyMode', 'best-effort');
-  const bin = resolveBinary(context.extensionPath);
+  const bin = await resolveBinary(context.extensionPath);
   const root = folders[0].uri.fsPath;
   try {
     const result = await spawnBinary(

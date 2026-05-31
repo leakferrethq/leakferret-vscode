@@ -3,8 +3,9 @@
 //
 //   1. `leakferret.binaryPath` VS Code setting (if non-empty)
 //   2. `LEAKFERRET_BIN` environment variable
-//   3. The vendored binary downloaded by `scripts/postinstall.js` into
-//      `<extensionRoot>/dist/bin/<binaryName>`
+//   3. The binary in `<extensionRoot>/dist/bin/<binaryName>` — placed there
+//      by `scripts/postinstall.js` (npm install) OR downloaded on first use
+//      (a `.vsix` install, where postinstall never runs)
 //   4. A binary named `leakferret` on the user's PATH (PATH lookup via
 //      shell-free spawn — the caller may pass `shell: true` if needed)
 //
@@ -16,6 +17,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { binaryName } from './platform';
+import { ensureBinary } from './download';
 
 export interface SpawnResult {
   code: number | null;
@@ -23,7 +25,7 @@ export interface SpawnResult {
   stderr: string;
 }
 
-export function resolveBinary(extensionPath: string): string {
+export async function resolveBinary(extensionPath: string): Promise<string> {
   const cfg = vscode.workspace.getConfiguration('leakferret');
   const override = cfg.get<string>('binaryPath', '').trim();
   if (override) {
@@ -37,8 +39,14 @@ export function resolveBinary(extensionPath: string): string {
   if (fs.existsSync(vendored)) {
     return vendored;
   }
-  // Fall back to PATH lookup. spawn() will throw ENOENT if it isn't there,
-  // and the caller surfaces that as a user-visible error.
+  // Not vendored — download it on demand (the .vsix case). Falls through to a
+  // PATH lookup if the download fails.
+  const downloaded = await ensureBinary(extensionPath);
+  if (downloaded) {
+    return downloaded;
+  }
+  // Last resort: a `leakferret` on PATH. spawn() throws ENOENT otherwise, and
+  // the caller surfaces that as a user-visible error.
   return binaryName();
 }
 

@@ -22,7 +22,7 @@ export async function scanFile(
   filePath: string,
   options: ScanOptions = {},
 ): Promise<Finding[]> {
-  const bin = resolveBinary(extensionPath);
+  const bin = await resolveBinary(extensionPath);
   const args = ['scan', filePath, '--format', 'json'];
   const only = options.only ?? [filePath];
   for (const o of only) {
