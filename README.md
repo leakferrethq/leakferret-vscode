@@ -6,6 +6,10 @@
 
 > MCP-native secret scanner — verified findings, agent-applied rewrites.
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/leakferrethq/leakferret/master/brand/demo.gif" alt="leakferret finds, verifies, and rewrites a leaked secret" width="760">
+</p>
+
 [`leakferret`](https://github.com/leakferrethq/leakferret) is a context-aware
 secret scanner that runs the moment you save a file. When a hardcoded AWS key,
 GitHub token, or Stripe secret hits disk, the editor flags it with a red
