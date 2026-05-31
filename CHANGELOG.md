@@ -3,6 +3,12 @@
 All notable changes to the `leakferret` VS Code extension are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.1] - 2026-05-31
+
+### Changed
+- Targets the leakferret `0.1.1` binary (cosign-signed release, classifier
+  precision and read-only-baseline fixes).
+
 ## [0.1.0] - 2026-05-27
 
 ### Added
