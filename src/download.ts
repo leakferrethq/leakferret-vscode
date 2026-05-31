@@ -18,7 +18,7 @@ import { detectPlatform, binaryName } from './platform';
 
 // The leakferret core release this extension pulls its binary from. Tracked
 // independently of the extension's own version.
-export const BINARY_VERSION = '0.1.1';
+export const BINARY_VERSION = '0.1.2';
 
 function tarballUrl(version: string, triple: string): string {
   const base =

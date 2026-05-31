@@ -15,7 +15,7 @@ to `.env.example`.
 
 This extension is a thin wrapper. It ships no scanning logic of its own — it
 downloads the prebuilt, statically-linked `leakferret` binary (written in Rust)
-from GitHub Releases at install time and shells out to it for every scan.
+from GitHub Releases on first use and shells out to it for every scan.
 
 **Classification runs on your own language model** via `vscode.lm.sendRequest`.
 If you already have a chat model available in VS Code, the extension uses it —
@@ -48,13 +48,12 @@ classification call and every report only ever see the redacted preview.
 
 ## Install
 
-> This extension is not yet published to the Marketplace.
+Available on **[Open VSX](https://open-vsx.org/extension/leakferrethq/leakferret)** —
+search **"leakferret"** in **Cursor, Windsurf, VSCodium, or Gitpod** and click
+Install. The `leakferret` binary is fetched automatically on your first scan; no
+Rust toolchain required. (Microsoft VS Code Marketplace listing coming soon.)
 
-Once published, the install link will be
-`https://marketplace.visualstudio.com/items?itemName=leakferrethq.leakferret`.
-It also targets [Open VSX](https://open-vsx.org) for Cursor and VSCodium.
-
-To run from source today:
+To run from source:
 
 ```bash
 git clone https://github.com/leakferrethq/leakferret-vscode.git
@@ -114,6 +113,20 @@ All commands are available from the Command Palette
   the extension surfaces findings as Warnings with no model classification.
 - There is no JetBrains / IntelliJ port yet; the classification flow depends on
   the `vscode.lm` API.
+
+## Also a CLI, a CI check, and an MCP server
+
+This extension is one face of leakferret — the same binary is also:
+
+- a **CLI**: `gem install leakferret` · `npm i -g @leakferret/cli` ·
+  `cargo install leakferret-cli`, then `leakferret scan .`
+- a **CI check**: the
+  [GitHub Action](https://github.com/leakferrethq/leakferret-action), or
+  `leakferret verify .` in any pipeline (SARIF output + baseline support)
+- an **MCP server**: `leakferret mcp`, so a coding agent can scan, verify, and
+  rewrite before it commits
+
+See the [main README](https://github.com/leakferrethq/leakferret) for all of it.
 
 ## License
 

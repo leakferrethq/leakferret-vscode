@@ -20,6 +20,8 @@
 //   leakferret.verify    — run `leakferret verify` over the workspace
 //   leakferret.rewrite   — run `leakferret rewrite --apply` on the active file
 
+import * as path from 'node:path';
+
 import * as vscode from 'vscode';
 import { resolveBinary, spawnBinary } from './binary';
 import { classify } from './classifier';
@@ -35,6 +37,7 @@ import {
 } from './quickFix';
 import { rewriteFile } from './rewriter';
 import { scanFile } from './scanner';
+import { Finding } from './types';
 
 const SUPPORTED_LANGUAGES = [
   'javascript',
@@ -110,7 +113,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(
     vscode.commands.registerCommand('leakferret.verify', async () => {
-      await runVerifyCommand(context);
+      await runVerifyCommand(context, diagnostics);
     }),
   );
 
@@ -231,6 +234,7 @@ async function runRewriteCommand(
 
 async function runVerifyCommand(
   context: vscode.ExtensionContext,
+  diagnostics: vscode.DiagnosticCollection,
 ): Promise<void> {
   const folders = vscode.workspace.workspaceFolders;
   if (!folders || folders.length === 0) {
@@ -252,9 +256,29 @@ async function runVerifyCommand(
     if (result.code !== 0 && result.code !== 1) {
       throw new Error(result.stderr.trim() || `exit ${result.code}`);
     }
-    const channel = vscode.window.createOutputChannel('leakferret verify');
-    channel.appendLine(result.stdout || '(no output)');
-    channel.show(true);
+    let findings: Finding[] = [];
+    try {
+      findings = JSON.parse(result.stdout || '[]') as Finding[];
+    } catch {
+      findings = [];
+    }
+    // Publish diagnostics per file so each finding is clickable (jumps to its
+    // line in the Problems panel) and shows its severity.
+    diagnostics.clear();
+    const byFile = new Map<string, Finding[]>();
+    for (const f of findings) {
+      const abs = path.isAbsolute(f.path) ? f.path : path.join(root, f.path);
+      byFile.set(abs, [...(byFile.get(abs) ?? []), f]);
+    }
+    for (const [file, group] of byFile) {
+      setFindingsForUri(diagnostics, vscode.Uri.file(file), group);
+    }
+    const verified = findings.filter(
+      (f) => f.verification?.status === 'verified',
+    ).length;
+    vscode.window.showInformationMessage(
+      `leakferret: ${findings.length} finding(s), ${verified} verified live — see the Problems panel.`,
+    );
   } catch (err) {
     vscode.window.showErrorMessage(
       `leakferret: verify failed — ${(err as Error).message}`,

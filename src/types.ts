@@ -24,6 +24,7 @@ export interface Finding {
   verdict?: Verdict;
   reason?: string;
   confidence?: number;
+  verification?: { status: string; provider?: string };
 }
 
 /**
