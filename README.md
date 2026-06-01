@@ -52,10 +52,14 @@ classification call and every report only ever see the redacted preview.
 
 ## Install
 
-Available on **[Open VSX](https://open-vsx.org/extension/leakferret/leakferret)** —
-search **"leakferret"** in **Cursor, Windsurf, VSCodium, or Gitpod** and click
-Install. The `leakferret` binary is fetched automatically on your first scan; no
-Rust toolchain required. (Microsoft VS Code Marketplace listing coming soon.)
+Search **"leakferret"** in your editor's Extensions panel and click Install:
+
+- **VS Code** — the
+  [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=leakferret.leakferret).
+- **Cursor, Windsurf, VSCodium, Gitpod** — [Open VSX](https://open-vsx.org/extension/leakferret/leakferret).
+
+The `leakferret` binary is fetched automatically on your first scan; no Rust
+toolchain required.
 
 To run from source:
 
