@@ -7,7 +7,7 @@ import * as vscode from 'vscode';
 import { scanFile } from '../scanner';
 import { findingsToDiagnostics } from '../diagnostics';
 
-const EXT_ID = 'leakferrethq.leakferret';
+const EXT_ID = 'leakferret.leakferret';
 
 suite('leakferret extension host', () => {
   test('activates and registers its commands', async () => {

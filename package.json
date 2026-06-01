@@ -2,8 +2,8 @@
   "name": "leakferret",
   "displayName": "leakferret",
   "description": "Context-aware secret detection. Stops you (and your agent) from committing live keys. Uses your own LLM for classification — no extra API key.",
-  "version": "0.1.8",
-  "publisher": "leakferrethq",
+  "version": "0.1.9",
+  "publisher": "leakferret",
   "license": "MIT",
   "icon": "images/icon.png",
   "repository": {
