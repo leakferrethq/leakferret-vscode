@@ -36,6 +36,7 @@ import {
   applyAllowlistEdit,
 } from './quickFix';
 import { rewriteFile } from './rewriter';
+import { rewriteFindingInteractive } from './inlineRewrite';
 import { scanFile } from './scanner';
 import { Finding } from './types';
 
@@ -134,8 +135,20 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       REWRITE_COMMAND,
-      async (uri: vscode.Uri, _range: vscode.Range) => {
-        await runRewriteCommand(context, uri);
+      async (uri: vscode.Uri, range: vscode.Range) => {
+        try {
+          // Per-finding interactive rewrite (asks for the env-var name and
+          // offers to move the secret into .env). Falls back to the whole-file
+          // CLI rewrite for languages it doesn't handle inline.
+          const handled = range ? await rewriteFindingInteractive(uri, range) : false;
+          if (!handled) {
+            await runRewriteCommand(context, uri);
+          }
+        } catch (err) {
+          vscode.window.showErrorMessage(
+            `leakferret: rewrite failed: ${(err as Error).message}`,
+          );
+        }
       },
     ),
   );
