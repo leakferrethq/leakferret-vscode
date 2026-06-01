@@ -1,0 +1,43 @@
+name: publish
+
+# Publishes the extension to both the VS Code Marketplace and Open VSX when a
+# vX.Y.Z tag is pushed. Bump `version` in package.json, commit, then:
+#   git tag v0.1.10 && git push origin v0.1.10
+#
+# Secrets (repo settings -> Secrets and variables -> Actions):
+#   VSCE_PAT  - Azure DevOps PAT, scope "Marketplace > Manage", for publisher `leakferret`
+#   OVSX_PAT  - Open VSX access token (https://open-vsx.org)
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          # The extension fetches its binary at runtime; no need to download it
+          # just to package the .vsix.
+          LEAKFERRET_SKIP_DOWNLOAD: '1'
+
+      - name: Package
+        run: npx --yes @vscode/vsce package --no-dependencies -o leakferret.vsix
+
+      - name: Publish to the VS Code Marketplace
+        run: npx --yes @vscode/vsce publish --packagePath leakferret.vsix -p "$VSCE_PAT"
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+
+      - name: Publish to Open VSX
+        run: npx --yes ovsx publish leakferret.vsix -p "$OVSX_PAT"
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
