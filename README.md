@@ -132,6 +132,29 @@ This extension is one face of leakferret — the same binary is also:
 
 See the [main README](https://github.com/leakferrethq/leakferret) for all of it.
 
+## Block commits locally (pre-commit hook)
+
+The extension flags secrets as you save. To also block them at commit time,
+install the [CLI](https://github.com/leakferrethq/leakferret) on your `PATH`
+(`gem install leakferret` · `npm i -g @leakferret/cli` ·
+`cargo install leakferret-cli`) and add a git hook from your repo root:
+
+```bash
+cat > .git/hooks/pre-commit <<'HOOK'
+#!/bin/sh
+# Offline secret scan (no network). Blocks the commit on any finding.
+leakferret verify . --verify-mode none --fail-on any || {
+  echo "leakferret blocked this commit. Bypass: git commit --no-verify"
+  exit 1
+}
+HOOK
+chmod +x .git/hooks/pre-commit
+```
+
+`--verify-mode none` keeps it offline; `--fail-on any` exits non-zero on any
+non-fixture finding. Pair with `leakferret baseline init` to block only on
+*new* secrets.
+
 ## License
 
 MIT for this extension and the bundled binary. The fixture catalog **data** is
