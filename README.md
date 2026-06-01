@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.png" alt="leakferret" width="380">
+  <img src="https://raw.githubusercontent.com/leakferrethq/leakferret-vscode/master/assets/logo.png" alt="leakferret" width="380">
 </p>
 
 # leakferret for VS Code
@@ -7,7 +7,7 @@
 > MCP-native secret scanner — verified findings, agent-applied rewrites.
 
 <p align="center">
-  <a href="https://marketplace.visualstudio.com/items?itemName=leakferret.leakferret"><img src="https://img.shields.io/visual-studio-marketplace/v/leakferret.leakferret?label=VS%20Code%20Marketplace&logo=visualstudiocode" alt="VS Code Marketplace"></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=leakferret.leakferret"><img src="https://img.shields.io/badge/VS%20Code-Marketplace-007ACC?logo=visualstudiocode&logoColor=white" alt="VS Code Marketplace"></a>
   <a href="https://open-vsx.org/extension/leakferret/leakferret"><img src="https://img.shields.io/open-vsx/v/leakferret/leakferret?label=Open%20VSX" alt="Open VSX"></a>
   <a href="https://github.com/leakferrethq/leakferret/blob/master/LICENSE.txt"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT"></a>
 </p>
