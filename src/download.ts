@@ -19,18 +19,18 @@ import { detectPlatform, binaryName } from './platform';
 
 // The leakferret core release this extension pulls its binary from. Tracked
 // independently of the extension's own version.
-export const BINARY_VERSION = '0.1.6';
+export const BINARY_VERSION = '0.1.7';
 
 // SHA256 of each release tarball, pinned to BINARY_VERSION. The download is
 // verified against these before extraction, so a tampered or corrupted release
 // asset is rejected rather than executed. Regenerate on every binary bump from
 // the release's *.tar.gz.sha256 files.
 const CHECKSUMS: Record<string, string> = {
-  'aarch64-apple-darwin': '4db78de31252e8a2964528c817f12c73d46b660f453398c9c2f0feba6b370772',
-  'aarch64-pc-windows-msvc': '021dce80072ae4cd553a23b05cddc9a878226668c92570df1b80c3221e034493',
-  'x86_64-apple-darwin': 'b37747b336a3a18875b05a5c6e9aa736f53518fbcf8e722993f434cea41e0aa2',
-  'x86_64-pc-windows-msvc': 'b0e32599f9d04e391d4b2d703e648c0a64739b15317434b0625eb00686cc6bb1',
-  'x86_64-unknown-linux-gnu': '05420ee2cd7e1d617f96caf098fda4a260ba361bc70af7e47da004959986cbbd',
+  'aarch64-apple-darwin': '24542d75ff0b16094f49d9b2e5cb7246b9247159e7d0e6b6741edb42522f0beb',
+  'aarch64-pc-windows-msvc': 'f1edae2de62386847be51f357ca0ebe3af6777b85ddef37fd7d17d005e8aa770',
+  'x86_64-apple-darwin': 'f69adcdaebebd3edddb2e0e9bfd2167ea12324447959638f73707807fa792fcd',
+  'x86_64-pc-windows-msvc': 'fa7dab267cac4c35bf31dabb479910f227a28ec4ef266082a5d57f016925835e',
+  'x86_64-unknown-linux-gnu': 'bfc5fc3763a4a573ecaf9406c2b3ab7b06fc74a88523e6ec906527ec58e5df0c',
 };
 
 function tarballUrl(version: string, triple: string): string {
