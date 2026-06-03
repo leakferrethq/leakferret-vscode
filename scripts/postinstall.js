@@ -1,25 +1,46 @@
 'use strict';
 
 // Post-install: download the platform-specific `leakferret` binary into
-// `dist/bin/`. Mirrors the strategy used by `@leakferret/cli` so users
-// who already have that npm package installed share the binary cache.
+// `dist/bin/`. Mirrors `src/download.ts` (the runtime, .vsix code path) so the
+// two stay in lockstep: same pinned binary version, same pinned checksums, and
+// the same pure-JS extraction — no shelling out to `tar`, which on Windows
+// mis-reads `C:\...` as a remote host and fails.
 //
 // Behavior:
 //   - If LEAKFERRET_BIN is set, skip the download (the user has their own).
-//   - If LEAKFERRET_SKIP_DOWNLOAD=1, skip (CI / offline builds).
-//   - Otherwise download from the release host, verify, and chmod.
+//   - If LEAKFERRET_SKIP_DOWNLOAD=1, skip (CI / offline builds, .vsix packaging).
+//   - Otherwise download from the release host, verify the SHA256, and extract.
 //
-// The script must be idempotent: re-running it after a successful download
-// should be a no-op.
+// The script must be idempotent: re-running it after a successful download is a
+// no-op. It never exits non-zero — VS Code rejects extensions whose postinstall
+// fails, and the binary is fetched on first use anyway (src/download.ts).
 
 const fs = require('node:fs');
 const path = require('node:path');
 const https = require('node:https');
-const { spawnSync } = require('node:child_process');
+const zlib = require('node:zlib');
+const crypto = require('node:crypto');
 
 const ROOT = path.join(__dirname, '..');
 const BIN_DIR = path.join(ROOT, 'dist', 'bin');
-const PACKAGE_JSON = require(path.join(ROOT, 'package.json'));
+
+// The leakferret core release this extension pulls its binary from. Tracked
+// independently of the extension's own version, and kept in sync with the
+// BINARY_VERSION constant in src/download.ts. Bump both (and CHECKSUMS) on
+// every binary release.
+const BINARY_VERSION = '0.1.7';
+
+// SHA256 of each release tarball, pinned to BINARY_VERSION. Must match the
+// CHECKSUMS in src/download.ts. The download is verified against these before
+// extraction, so a tampered or corrupted release asset is rejected rather than
+// executed. Regenerate on every binary bump from the release's *.tar.gz.sha256.
+const CHECKSUMS = {
+  'aarch64-apple-darwin': '24542d75ff0b16094f49d9b2e5cb7246b9247159e7d0e6b6741edb42522f0beb',
+  'aarch64-pc-windows-msvc': 'f1edae2de62386847be51f357ca0ebe3af6777b85ddef37fd7d17d005e8aa770',
+  'x86_64-apple-darwin': 'f69adcdaebebd3edddb2e0e9bfd2167ea12324447959638f73707807fa792fcd',
+  'x86_64-pc-windows-msvc': 'fa7dab267cac4c35bf31dabb479910f227a28ec4ef266082a5d57f016925835e',
+  'x86_64-unknown-linux-gnu': 'bfc5fc3763a4a573ecaf9406c2b3ab7b06fc74a88523e6ec906527ec58e5df0c',
+};
 
 function detectPlatform() {
   const arch = process.arch;
@@ -54,11 +75,7 @@ function tarballUrl(version, triple) {
   return `${base}/v${version}/leakferret-${version}-${triple}.tar.gz`;
 }
 
-function ensureDir(dir) {
-  fs.mkdirSync(dir, { recursive: true });
-}
-
-function fetchToFile(url, dest, redirects = 0) {
+function fetchBuffer(url, redirects = 0) {
   return new Promise((resolve, reject) => {
     if (redirects > 5) {
       reject(new Error(`too many redirects fetching ${url}`));
@@ -66,56 +83,44 @@ function fetchToFile(url, dest, redirects = 0) {
     }
     https
       .get(url, (res) => {
-        if (
-          res.statusCode &&
-          res.statusCode >= 300 &&
-          res.statusCode < 400 &&
-          res.headers.location
-        ) {
+        const code = res.statusCode || 0;
+        if (code >= 300 && code < 400 && res.headers.location) {
           res.resume();
-          fetchToFile(res.headers.location, dest, redirects + 1).then(
-            resolve,
-            reject,
-          );
+          fetchBuffer(res.headers.location, redirects + 1).then(resolve, reject);
           return;
         }
-        if (res.statusCode !== 200) {
-          reject(new Error(`HTTP ${res.statusCode} for ${url}`));
+        if (code !== 200) {
+          res.resume();
+          reject(new Error(`HTTP ${code} for ${url}`));
           return;
         }
-        const out = fs.createWriteStream(dest);
-        res.pipe(out);
-        out.on('finish', () => out.close(() => resolve()));
-        out.on('error', reject);
+        const chunks = [];
+        res.on('data', (c) => chunks.push(c));
+        res.on('end', () => resolve(Buffer.concat(chunks)));
+        res.on('error', reject);
       })
       .on('error', reject);
   });
 }
 
-function unpack(archivePath, destDir) {
-  if (archivePath.endsWith('.zip')) {
-    // Windows: use PowerShell's Expand-Archive (always available on 5.1+).
-    const res = spawnSync(
-      'powershell.exe',
-      [
-        '-NoProfile',
-        '-NonInteractive',
-        '-Command',
-        `Expand-Archive -Path '${archivePath}' -DestinationPath '${destDir}' -Force`,
-      ],
-      { stdio: 'inherit' },
-    );
-    if (res.status !== 0) {
-      throw new Error(`Expand-Archive failed (exit ${res.status})`);
+// Minimal tar reader: return the contents of the first entry whose basename
+// matches `want`. The archive nests files under leakferret-<ver>-<triple>/.
+function extractFromTarGz(gzBuf, want) {
+  const buf = zlib.gunzipSync(gzBuf);
+  let offset = 0;
+  while (offset + 512 <= buf.length) {
+    const header = buf.subarray(offset, offset + 512);
+    const name = header.subarray(0, 100).toString('utf8').replace(/\0.*$/, '');
+    if (name === '') break; // end-of-archive padding
+    const sizeOctal = header.subarray(124, 136).toString('utf8').replace(/\0.*$/, '').trim();
+    const size = parseInt(sizeOctal, 8) || 0;
+    const dataStart = offset + 512;
+    if (name.split('/').pop() === want && size > 0) {
+      return buf.subarray(dataStart, dataStart + size);
     }
-    return;
+    offset = dataStart + Math.ceil(size / 512) * 512;
   }
-  const res = spawnSync('tar', ['-xzf', archivePath, '--strip-components=1', '-C', destDir], {
-    stdio: 'inherit',
-  });
-  if (res.status !== 0) {
-    throw new Error(`tar -xzf failed (exit ${res.status})`);
-  }
+  return null;
 }
 
 async function main() {
@@ -129,7 +134,7 @@ async function main() {
     );
     return;
   }
-  ensureDir(BIN_DIR);
+  fs.mkdirSync(BIN_DIR, { recursive: true });
   const target = path.join(BIN_DIR, binaryName());
   if (fs.existsSync(target)) {
     console.log(`[leakferret] binary already present at ${target}`);
@@ -137,33 +142,46 @@ async function main() {
   }
 
   const triple = detectPlatform();
-  const url = tarballUrl(PACKAGE_JSON.version, triple);
-  const archive = path.join(BIN_DIR, 'leakferret.tar.gz');
+  const url = tarballUrl(BINARY_VERSION, triple);
 
   console.log(`[leakferret] downloading ${url}`);
   try {
-    await fetchToFile(url, archive);
-    unpack(archive, BIN_DIR);
+    const gz = await fetchBuffer(url);
+
+    // Verify the tarball against the pinned hash before extracting or writing
+    // anything, so tampered or corrupted bytes are never executed.
+    const expected = CHECKSUMS[triple];
+    if (!expected) {
+      throw new Error(`no pinned checksum for ${triple}; refusing to install an unverified binary`);
+    }
+    const actual = crypto.createHash('sha256').update(gz).digest('hex');
+    if (actual.toLowerCase() !== expected.toLowerCase()) {
+      throw new Error(
+        `checksum mismatch for ${url} (expected ${expected}, got ${actual}); ` +
+          'refusing to install a binary that does not match the pinned hash',
+      );
+    }
+
+    const bin = extractFromTarGz(gz, binaryName());
+    if (!bin) {
+      throw new Error(`binary ${binaryName()} not found inside ${url}`);
+    }
+    fs.writeFileSync(target, bin);
     if (process.platform !== 'win32') {
       try {
         fs.chmodSync(target, 0o755);
       } catch (err) {
-        console.warn(
-          `[leakferret] chmod 755 failed for ${target}: ${err.message}`,
-        );
+        console.warn(`[leakferret] chmod 755 failed for ${target}: ${err.message}`);
       }
     }
-    fs.unlinkSync(archive);
     console.log(`[leakferret] installed binary at ${target}`);
   } catch (err) {
-    console.warn(
-      `[leakferret] postinstall could not fetch the binary: ${err.message}`,
-    );
+    console.warn(`[leakferret] postinstall could not fetch the binary: ${err.message}`);
     console.warn(
       '[leakferret] the extension will still install. Set "leakferret.binaryPath" to a local binary, or re-run install when the release is published.',
     );
-    // Never fail the install — VS Code rejects extensions whose
-    // postinstall scripts exit non-zero.
+    // Never fail the install — VS Code rejects extensions whose postinstall
+    // scripts exit non-zero, and src/download.ts fetches on first use anyway.
   }
 }
 
