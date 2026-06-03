@@ -3,6 +3,13 @@
 All notable changes to the `leakferret` VS Code extension are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.15] - 2026-06-03
+
+### Changed
+- Targets the leakferret `0.1.9` binary, which adds the `leakferret org` command
+  (scan every public repo of a GitHub user/org). Updates the pinned SHA256
+  checksums in `src/download.ts` and `scripts/postinstall.js`.
+
 ## [0.1.14] - 2026-06-03
 
 ### Changed
