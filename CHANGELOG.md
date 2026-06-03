@@ -3,6 +3,14 @@
 All notable changes to the `leakferret` VS Code extension are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.13] - 2026-06-03
+
+### Fixed
+- Postinstall now downloads the pinned core binary version (`0.1.7`) instead of
+  deriving the URL from the extension version, which 404'd after the extension
+  was bumped past the latest core release. It also verifies the release tarball
+  against the pinned SHA256 and extracts in pure JS, matching `src/download.ts`.
+
 ## [0.1.11] - 2026-06-02
 
 ### Changed
